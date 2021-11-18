@@ -1,0 +1,4 @@
+cache/
+tests-results/
+vendor/
+composer.lock

@@ -1,0 +1,82 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php: [7.4, 8.0]
+
+    steps:
+      - name: Source checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: xdebug
+
+      - name: Cache PHP dependencies
+        uses: actions/cache@v1
+        with:
+          path: vendor
+          key: ${{ runner.OS }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Composer update
+        run: composer update -o -n --prefer-dist
+
+      - name: Create directories
+        run: |
+          mkdir tests-results
+          mkdir tests-results/cache
+          mkdir tests-results/infection
+          mkdir tests-results/phpcs
+          mkdir tests-results/phpmd
+          mkdir tests-results/phpstan
+          mkdir tests-results/psalm
+          mkdir tests-results/phpunit
+
+      - name: Run Code Sniffer
+        run: composer phpcs
+        continue-on-error: true
+
+      - name: Run Mess Detector
+        run: composer phpmd
+        continue-on-error: true
+
+      - name: Run PHPStan
+        run: composer phpstan
+        continue-on-error: true
+
+      - name: Run Psalm
+        run: composer psalm
+        continue-on-error: true
+
+      - name: Run PHPUnit
+        run: composer phpunit
+
+      - name: Run Infection
+        run: composer infection
+        env:
+          STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+
+      - name: Codecov
+        run: bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Codacy
+        run: bash <(curl -Ls https://coverage.codacy.com/get.sh)
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: tests-results
+          path: tests-results/

@@ -1,0 +1,16 @@
+{
+  "timeout": 10,
+  "source": {
+    "directories": [
+      "src"
+    ]
+  },
+  "tmpDir": "cache",
+  "logs": {
+    "text": "tests-results/infection/infection.txt",
+    "summary": "tests-results/infection/summary.log",
+    "badge": {
+      "branch": "main"
+    }
+  }
+}
